@@ -69,8 +69,8 @@ if st.session_state['issued']:
    # --- PASTE THIS RIGHT AFTER THE TICKET DISPLAY ---
     st.write("") # Spacer
         if st.button("🖨️ PRINT CITATION"):
-            components.html(f"""
-                <script>
-                    window.print();
-                </script>
-            """, height=0, width=0)
+        components.html(f"""
+             <script>
+                window.print();
+            </script>
+        """, height=0, width=0)
