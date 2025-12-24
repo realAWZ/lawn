@@ -1,86 +1,59 @@
 import streamlit as st
 import datetime
 
-# --- PAGE CONFIG ---
 st.set_page_config(page_title="NJ Family Court", page_icon="⚖️", layout="centered")
 
-# --- CUSTOM CSS (To make the ticket look real) ---
+# CSS for the Ticket
 st.markdown("""
 <style>
-    .ticket-box {
-        border: 2px solid #000;
-        padding: 20px;
-        background-color: #fdfbf7; /* Paper color */
-        font-family: 'Courier New', Courier, monospace;
-    }
-    .header { text-align: center; font-weight: bold; border-bottom: 2px solid black; margin-bottom: 10px; }
-    .statute { font-weight: bold; color: #b30000; }
+    .ticket { border: 2px solid #333; padding: 20px; background-color: #fcfbf9; font-family: monospace; }
+    .header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 10px; font-weight: bold; }
+    .statute { color: #b30000; font-weight: bold; }
+    .stButton>button { width: 100%; background-color: #b30000; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🚓 Family Citation Writer")
-st.caption("Official Issuance System for Household Violations")
+st.caption("Official Title 39-H Issuance System")
 
-# --- INPUT FORM ---
-with st.form("ticket_form"):
-    col1, col2 = st.columns(2)
-    officer = col1.text_input("Issuing Officer:", value="Trooper Dad")
-    defendant = col2.selectbox("Defendant:", ["Ayden", "Mom", "Brother", " The Dog", "Guest"])
-    
-    location = st.text_input("Location of Incident:", placeholder="Kitchen, Living Room, Driveway...")
-    
-    # The "Statutes"
-    violation_type = st.selectbox("Violation (Title 39-H):", [
-        "39:H-10 :: Failure to Refill Water Pitcher",
-        "39:H-22 :: Leaving Lights On in Empty Room",
-        "39:H-45 :: Thermostat Tampering (1st Degree Felony)",
-        "39:H-50 :: Failure to Rinse Dish Before Loading",
-        "39:H-88 :: Shoes Left in Hallway (Obstruction of Traffic)",
-        "39:H-99 :: Excessive Noise / Gaming after 2300 Hours",
-        "CUSTOM :: Write my own..."
-    ])
-    
-    if "CUSTOM" in violation_type:
-        custom_violation = st.text_input("Enter Custom Violation:")
-    
-    fine = st.selectbox("Assessed Penalty:", [
-        "Verbal Warning",
-        "Take Out Trash (Immediate)",
-        "Empty Dishwasher",
-        "Mow The Lawn",
-        "Walk The Dog (2 Miles)",
-        "Loss of Car Keys (24 Hours)"
-    ])
-    
-    submitted = st.form_submit_button("🚨 ISSUE CITATION")
+# --- INPUTS (No Form Wrapper) ---
+defendant = st.text_input("Defendant Name:", placeholder="Enter name...")
+location = st.text_input("Location:", placeholder="Living Room...")
 
-# --- TICKET GENERATOR ---
-if submitted:
-    # Handle custom text
-    violation_text = custom_violation if "CUSTOM" in violation_type else violation_type
-    
-    st.divider()
-    st.markdown("### 🖨️ CITATION GENERATED")
-    
-    # The Visual "Paper" Ticket
-    st.markdown(f"""
-    <div class="ticket-box">
-        <div class="header">
-            STATE OF NEW JERSEY<br>
-            FAMILY MUNICIPAL COURT<br>
-            SUMMONS # {datetime.datetime.now().strftime('%m%d-%H%M')}
+st.divider()
+
+# Violation Logic
+v_mode = st.radio("Violation Type:", ["Select List", "Write Custom"], horizontal=True)
+if v_mode == "Select List":
+    violation = st.selectbox("Violation:", ["39:H-10 :: Empty Water Pitcher", "39:H-22 :: Lights Left On", "39:H-99 :: Gaming Past Curfew"])
+else:
+    violation = st.text_input("Enter Custom Violation:", placeholder="e.g. Ate the last cookie")
+
+st.divider()
+
+# Penalty Logic
+p_mode = st.radio("Penalty Type:", ["Select List", "Write Custom"], horizontal=True)
+if p_mode == "Select List":
+    penalty = st.selectbox("Penalty:", ["Verbal Warning", "Trash Duty", "Mow Lawn", "Loss of WiFi"])
+else:
+    penalty = st.text_input("Enter Custom Penalty:", placeholder="e.g. Buy Dad Coffee")
+
+st.divider()
+
+if st.button("🚨 ISSUE CITATION"):
+    if not defendant:
+        st.error("Enter a Defendant Name!")
+    else:
+        html_ticket = f"""
+        <div class="ticket">
+            <div class="header">STATE OF NEW JERSEY<br>SUMMONS # {datetime.datetime.now().strftime('%m%d-%H%M')}</div>
+            <p><b>DEFENDANT:</b> {defendant.upper()}</p>
+            <p><b>LOCATION:</b> {location.upper()}</p>
+            <hr>
+            <p><b>VIOLATION:</b> <span class="statute">{violation}</span></p>
+            <hr>
+            <p><b>PENALTY:</b> {penalty.upper()}</p>
+            <p style="text-align:center; margin-top:20px;"><i>ISSUING OFFICER: DAD</i></p>
         </div>
-        <p><b>DATE:</b> {datetime.date.today()}</p>
-        <p><b>DEFENDANT:</b> {defendant.upper()}</p>
-        <p><b>LOCATION:</b> {location.upper()}</p>
-        <hr>
-        <p><b>VIOLATION OBSERVED:</b></p>
-        <p class="statute">{violation_text}</p>
-        <hr>
-        <p><b>PENALTY ASSESSED:</b></p>
-        <p><b>{fine.upper()}</b></p>
-        <hr>
-        <p><i>ISSUING OFFICER: {officer}</i></p>
-        <p style="font-size: 10px; text-align: center;">FAILURE TO COMPLY MAY RESULT IN WIFI TERMINATION.</p>
-    </div>
-    """, unsafe_allow_html=True)
+        """
+        st.markdown(html_ticket, unsafe_allow_html=True)
