@@ -57,3 +57,12 @@ if st.button("🚨 ISSUE CITATION"):
         </div>
         """
         st.markdown(html_ticket, unsafe_allow_html=True)
+        
+        # --- NEW PRINT BUTTON LOGIC ---
+        st.write("") # Spacer
+        if st.button("🖨️ PRINT CITATION"):
+            components.html(f"""
+                <script>
+                    window.print();
+                </script>
+            """, height=0, width=0)
