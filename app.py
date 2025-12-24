@@ -4,6 +4,12 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="NJ Family Court", page_icon="⚖️", layout="centered")
 
+# --- 1. INITIALIZE MEMORY (Fixes the KeyError) ---
+if 'issued' not in st.session_state:
+    st.session_state['issued'] = False
+if 'ticket_html' not in st.session_state:
+    st.session_state['ticket_html'] = ""
+
 # CSS for the Ticket
 st.markdown("""
 <style>
@@ -11,13 +17,17 @@ st.markdown("""
     .header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 10px; font-weight: bold; }
     .statute { color: #b30000; font-weight: bold; }
     .stButton>button { width: 100%; background-color: #b30000; color: white; }
+    @media print {
+        .stButton, header, footer, .stDeployButton { display: none !important; }
+        .block-container { padding-top: 0px !important; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🚓 Family Citation Writer")
 st.caption("Official Title 39-H Issuance System")
 
-# --- INPUTS (No Form Wrapper) ---
+# --- INPUTS ---
 defendant = st.text_input("Defendant Name:", placeholder="Enter name...")
 location = st.text_input("Location:", placeholder="Living Room...")
 
@@ -41,11 +51,13 @@ else:
 
 st.divider()
 
+# --- ISSUE BUTTON ---
 if st.button("🚨 ISSUE CITATION"):
     if not defendant:
         st.error("Enter a Defendant Name!")
     else:
-        html_ticket = f"""
+        # Save to memory so it doesn't disappear
+        st.session_state['ticket_html'] = f"""
         <div class="ticket">
             <div class="header">STATE OF NEW JERSEY<br>SUMMONS # {datetime.datetime.now().strftime('%m%d-%H%M')}</div>
             <p><b>DEFENDANT:</b> {defendant.upper()}</p>
@@ -57,20 +69,20 @@ if st.button("🚨 ISSUE CITATION"):
             <p style="text-align:center; margin-top:20px;"><i>ISSUING OFFICER: DAD</i></p>
         </div>
         """
-        st.markdown(html_ticket, unsafe_allow_html=True)
-        
-      # --- 5. DISPLAY & PRINT (READS MEMORY) ---
+        st.session_state['issued'] = True
+
+# --- PRINT LOGIC ---
 if st.session_state['issued']:
-    # Show the ticket
     st.markdown(st.session_state['ticket_html'], unsafe_allow_html=True)
+    st.write("")
     
-    st.write("") # Spacer
-    
-   # --- PASTE THIS RIGHT AFTER THE TICKET DISPLAY ---
-    st.write("") # Spacer
     if st.button("🖨️ PRINT CITATION"):
-        components.html(f"""
-             <script>
+        components.html("""
+            <script>
                 window.print();
             </script>
         """, height=0, width=0)
+    
+    if st.button("🔄 START OVER"):
+        st.session_state['issued'] = False
+        st.rerun()
