@@ -58,11 +58,23 @@ if st.button("🚨 ISSUE CITATION"):
         """
         st.markdown(html_ticket, unsafe_allow_html=True)
         
-        # --- NEW PRINT BUTTON LOGIC ---
-        st.write("") # Spacer
-        if st.button("🖨️ PRINT CITATION"):
-            components.html(f"""
-                <script>
-                    window.print();
-                </script>
-            """, height=0, width=0)
+      # --- 5. DISPLAY & PRINT (READS MEMORY) ---
+if st.session_state['issued']:
+    # Show the ticket
+    st.markdown(st.session_state['ticket_html'], unsafe_allow_html=True)
+    
+    st.write("") # Spacer
+    
+    # The Print Button
+    # Note: We use a Javascript injection to trigger the print dialog
+    if st.button("🖨️ PRINT CITATION NOW"):
+        components.html("""
+            <script>
+                window.print();
+            </script>
+        """, height=0, width=0)
+        
+    # Optional: Reset button to clear the form
+    if st.button("🔄 RESET FORM"):
+        st.session_state['issued'] = False
+        st.rerun()
