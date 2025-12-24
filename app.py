@@ -1,5 +1,6 @@
 import streamlit as st
 import datetime
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="NJ Family Court", page_icon="⚖️", layout="centered")
 
@@ -65,16 +66,11 @@ if st.session_state['issued']:
     
     st.write("") # Spacer
     
-    # The Print Button
-    # Note: We use a Javascript injection to trigger the print dialog
-    if st.button("🖨️ PRINT CITATION NOW"):
-        components.html("""
-            <script>
-                window.print();
-            </script>
-        """, height=0, width=0)
-        
-    # Optional: Reset button to clear the form
-    if st.button("🔄 RESET FORM"):
-        st.session_state['issued'] = False
-        st.rerun()
+   # --- PASTE THIS RIGHT AFTER THE TICKET DISPLAY ---
+        st.write("") # Spacer
+        if st.button("🖨️ PRINT CITATION"):
+            components.html(f"""
+                <script>
+                    window.print();
+                </script>
+            """, height=0, width=0)
