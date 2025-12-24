@@ -1,122 +1,121 @@
 import streamlit as st
+from PIL import Image, ImageDraw, ImageFont
+import io
 import datetime
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="NJ Family Court", page_icon="⚖️", layout="centered")
 
-# --- MEMORY ---
-if 'issued' not in st.session_state:
-    st.session_state['issued'] = False
-if 'ticket_html' not in st.session_state:
-    st.session_state['ticket_html'] = ""
-
-# --- CSS STYLING ---
-st.markdown("""
-<style>
-    /* Force background colors to print correctly */
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+def create_ticket_image(defendant, location, violation, penalty):
+    # 1. Setup the Blank Paper (Yellowish)
+    width, height = 600, 800
+    color_paper = (255, 251, 230) # Off-white/yellow
+    color_black = (0, 0, 0)
+    color_red = (178, 34, 34)
     
-    .ticket-container {
-        /* Makes it look like a card on screen for easy screenshots */
-        box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-        margin-bottom: 20px;
-    }
-
-    .ticket { 
-        border: 4px solid #000; 
-        padding: 30px; 
-        background-color: #fffbe6 !important; /* Yellowish Paper */
-        background-image: url("https://www.transparenttextures.com/patterns/cream-paper.png");
-        font-family: 'Courier New', monospace; 
-        color: black !important;
-    }
-    .header { text-align: center; border-bottom: 3px solid #000; margin-bottom: 20px; font-weight: bold; font-size: 1.2em;}
-    .statute { color: #b30000 !important; font-weight: bold; font-size: 1.1em;}
-    .stButton>button { width: 100%; background-color: #b30000; color: white; font-weight: bold;}
+    img = Image.new('RGB', (width, height), color_paper)
+    draw = ImageDraw.Draw(img)
     
-    /* CRITICAL: HIDE EVERYTHING ELSE WHEN PRINTING */
-    @media print {
-        .stButton, header, footer, .stDeployButton, .stAppHeader, .stTextInput, .stSelectbox, .stRadio, .stDivider, h1, div[data-testid="stCaption"] { display: none !important; }
-        .block-container { padding: 0px !important; margin: 0px !important; }
-        .ticket-container { box-shadow: none !important; } /* No shadow on paper */
-    }
-</style>
-""", unsafe_allow_html=True)
+    # 2. Draw Borders
+    draw.rectangle([(20, 20), (width-20, height-20)], outline=color_black, width=5)
+    draw.rectangle([(30, 30), (width-30, height-30)], outline=color_black, width=2)
+    
+    # 3. Load Fonts (Try to load a good one, fallback to default)
+    try:
+        # Trying common fonts
+        font_header = ImageFont.truetype("DejaVuSans-Bold.ttf", 30)
+        font_label = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
+        font_text = ImageFont.truetype("DejaVuSans.ttf", 20)
+        font_stamp = ImageFont.truetype("DejaVuSans-Bold.ttf", 40)
+    except:
+        # Fallback if specific fonts aren't on the server
+        font_header = ImageFont.load_default()
+        font_label = ImageFont.load_default()
+        font_text = ImageFont.load_default()
+        font_stamp = ImageFont.load_default()
 
-st.title("🚓 Family Citation Writer")
-st.caption("Official Title 39-H Issuance System")
-
-# --- INPUTS ---
-defendant = st.text_input("Defendant Name:", placeholder="Enter name...")
-location = st.text_input("Location:", placeholder="Living Room...")
-
-st.divider()
-
-# Violation
-v_mode = st.radio("Violation Type:", ["Select List", "Write Custom"], horizontal=True)
-if v_mode == "Select List":
-    violation = st.selectbox("Violation:", ["39:H-10 :: Empty Water Pitcher", "39:H-22 :: Lights Left On", "39:H-99 :: Gaming Past Curfew", "39:H-04 :: Leaving Shoes by Door"])
-else:
-    violation = st.text_input("Enter Custom Violation:", placeholder="e.g. Ate the last cookie")
-
-st.divider()
-
-# Penalty
-p_mode = st.radio("Penalty Type:", ["Select List", "Write Custom"], horizontal=True)
-if p_mode == "Select List":
-    penalty = st.selectbox("Penalty:", ["Verbal Warning", "Trash Duty", "Mow Lawn", "Loss of WiFi (24h)", "10 Pushups"])
-else:
-    penalty = st.text_input("Enter Custom Penalty:", placeholder="e.g. Buy Dad Coffee")
-
-st.divider()
-
-# --- ISSUE BUTTON ---
-if st.button("🚨 ISSUE OFFICIAL CITATION"):
-    if not defendant:
-        st.error("Enter a Defendant Name!")
-    else:
-        date_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-        case_num = datetime.datetime.now().strftime('%m%d-%H%M')
+    # 4. Write Content
+    # Helper to center text
+    def draw_centered(text, y, font, color=color_black):
+        # Calculate width using textbbox (newer PIL versions) or textlength
+        try:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+        except:
+             text_width = draw.textlength(text, font=font)
         
-        st.session_state['ticket_html'] = f"""
-        <div class="ticket-container">
-        <div class="ticket">
-            <div class="header">STATE OF NEW JERSEY<br>FAMILY COURT DIVISION<br>CASE # {case_num}</div>
-            <p><b>DATE/TIME:</b> {date_str}</p>
-            <p><b>DEFENDANT:</b> {defendant.upper()}</p>
-            <p><b>LOCATION:</b> {location.upper()}</p>
-            <hr style="border-top: 2px dashed black;">
-            <p><b>VIOLATION CITED:</b></p>
-            <p class="statute">{violation.upper()}</p>
-            <hr style="border-top: 2px dashed black;">
-            <p><b>PENALTY ASSESSED:</b></p>
-            <h3 style="text-align:center; color: red; border: 3px solid red; padding: 10px; transform: rotate(-2deg);">{penalty.upper()}</h3>
-            <br>
-            <p style="text-align:center; margin-top:20px;"><i>ISSUING OFFICER: _________________ (DAD)</i></p>
-            <p style="font-size: 0.8em; text-align: center;">Failure to comply will result in further sanctions.</p>
-        </div>
-        </div>
-        """
-        st.session_state['issued'] = True
+        x = (width - text_width) / 2
+        draw.text((x, y), text, fill=color, font=font)
 
-# --- OUTPUT AREA ---
-if st.session_state['issued']:
-    st.markdown("### 📄 Generated Citation")
-    # Display the ticket
-    st.markdown(st.session_state['ticket_html'], unsafe_allow_html=True)
+    # Header
+    draw_centered("STATE OF NEW JERSEY", 60, font_header)
+    draw_centered("FAMILY COURT DIVISION", 100, font_label)
     
-    st.divider()
-    col1, col2 = st.columns(2)
+    # Details
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    case_id = datetime.datetime.now().strftime('%m%d-%H%M')
     
-    with col1:
-        # THE FIXED PRINT BUTTON
-        if st.button("🖨️ PRINT TO PAPER"):
-            components.html("<script>window.parent.print();</script>", height=0, width=0)
-            
-    with col2:
-        # INSTRUCTIONS FOR SHARING
-        st.info("📱 **TO SHARE VIA TEXT:** Take a screenshot of the ticket above on your phone, then send the photo.")
+    draw.text((50, 180), f"CASE #: {case_id}", fill=color_black, font=font_label)
+    draw.text((50, 210), f"DATE:   {current_time}", fill=color_black, font=font_text)
+    
+    draw.line([(50, 250), (width-50, 250)], fill=color_black, width=3)
+    
+    draw.text((50, 280), "DEFENDANT:", fill=color_black, font=font_label)
+    draw.text((50, 310), defendant.upper(), fill=color_black, font=font_text)
+    
+    draw.text((50, 360), "LOCATION:", fill=color_black, font=font_label)
+    draw.text((50, 390), location.upper(), fill=color_black, font=font_text)
+    
+    draw.line([(50, 440), (width-50, 440)], fill=color_black, width=3)
+    
+    draw.text((50, 470), "VIOLATION CITED:", fill=color_red, font=font_label)
+    draw.text((50, 500), violation, fill=color_black, font=font_text)
+    
+    draw.text((50, 560), "PENALTY ASSESSED:", fill=color_red, font=font_label)
+    
+    # Draw Penalty Box
+    draw.rectangle([(50, 590), (width-50, 660)], outline=color_red, width=3)
+    draw_centered(penalty.upper(), 615, font_stamp, color=color_red)
+    
+    # Signature
+    draw.line([(50, 720), (300, 720)], fill=color_black, width=2)
+    draw.text((50, 730), "ISSUING OFFICER (DAD)", fill=color_black, font=font_text)
 
-    if st.button("🔄 ISSUE NEW TICKET"):
-        st.session_state['issued'] = False
-        st.rerun()
+    return img
+
+# --- APP UI ---
+st.title("🚓 Citation Generator")
+st.caption("Generate an Official Image Ticket")
+
+# Inputs
+col1, col2 = st.columns(2)
+defendant = col1.text_input("Defendant Name")
+location = col2.text_input("Location")
+
+violation = st.selectbox("Violation", ["Messy Room", "Lights On", "Bad Attitude", "Custom"])
+if violation == "Custom":
+    violation = st.text_input("Enter Custom Violation")
+    
+penalty = st.text_input("Penalty", "10 Pushups")
+
+if st.button("🖼️ GENERATE TICKET IMAGE"):
+    if not defendant:
+        st.error("Need a Name!")
+    else:
+        # Create the image
+        img = create_ticket_image(defendant, location, violation, penalty)
+        
+        # Show it on screen
+        st.image(img, caption="Official Citation Preview", use_container_width=True)
+        
+        # Convert to bytes for download
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        byte_im = buf.getvalue()
+        
+        # Download Button
+        st.download_button(
+            label="⬇️ DOWNLOAD TICKET (PNG)",
+            data=byte_im,
+            file_name=f"citation_{defendant}.png",
+            mime="image/png"
+        )
